@@ -1,58 +1,24 @@
-name: Render Archive Release Zips
+name: Render Cartoon From Release Zip
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Release tag that contains one or more archive zip assets, for example v1"
+        description: "Release tag that contains public.zip. Leave empty to use the latest release."
+        required: false
+        default: ""
+      asset_name:
+        description: "Name of the ZIP asset uploaded to the release."
         required: true
-        type: string
-      workers_per_video:
-        description: "Parallel chunk workers per video"
-        required: true
-        type: number
-        default: 4
-      max_total_render_jobs:
-        description: "Maximum total render jobs to run at once"
-        required: true
-        type: number
-        default: 10
-
-permissions:
-  contents: read
+        default: "public.zip"
 
 jobs:
-  discover:
-    name: Find release zips
+  render:
     runs-on: ubuntu-latest
-    outputs:
-      chunks: ${{ steps.matrices.outputs.chunks }}
-      videos: ${{ steps.matrices.outputs.videos }}
-    steps:
-      - name: Checkout renderer
-        uses: actions/checkout@v4
+    timeout-minutes: 120
+    permissions:
+      contents: read
 
-      - name: Download release zips
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: |
-          mkdir -p incoming
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.zip" --dir incoming
-          ls -lh incoming
-
-      - name: Build render matrices
-        id: matrices
-        run: node .github/scripts/make-render-matrices.mjs incoming "${{ inputs.workers_per_video }}" >> "$GITHUB_OUTPUT"
-
-  render-chunks:
-    name: Render ${{ matrix.stem }} chunk ${{ matrix.chunk_id }}
-    needs: discover
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: ${{ fromJSON(inputs.max_total_render_jobs) }}
-      matrix: ${{ fromJSON(needs.discover.outputs.chunks) }}
     steps:
       - name: Checkout renderer
         uses: actions/checkout@v4
@@ -63,133 +29,54 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install renderer dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Download archive package
+      - name: Download public assets from release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
-          ZIP_NAME: ${{ matrix.zip_name }}
+          ASSET_NAME: ${{ inputs.asset_name }}
         run: |
-          rm -rf incoming public/audio public/images public/sfx out
-          mkdir -p incoming public out
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ZIP_NAME" --dir incoming
-          unzip -o "incoming/$ZIP_NAME" -d public
-          test -f public/archive.json
-          node .github/scripts/sanitize-package.mjs public
+          set -euo pipefail
 
-      - name: Render video chunk
-        run: |
-          cores="$(nproc)"
-          if [ "$cores" -lt 2 ]; then
-            safe_concurrency="$cores"
+          mkdir -p _release_assets _unzipped
+
+          if [ -n "$RELEASE_TAG" ]; then
+            gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" --dir _release_assets --clobber
           else
-            safe_concurrency="2"
-          fi
-          npx remotion render src/index.ts ArchiveDocumentary "out/${{ matrix.stem }}_chunk_${{ matrix.chunk_id }}.mp4" \
-            --codec=h264 \
-            --muted \
-            --frames="${{ matrix.frames }}" \
-            --concurrency="$safe_concurrency"
-
-      - name: Upload rendered chunk
-        uses: actions/upload-artifact@v4
-        with:
-          name: chunk-${{ matrix.stem }}-${{ matrix.chunk_id }}
-          path: out/${{ matrix.stem }}_chunk_${{ matrix.chunk_id }}.mp4
-          if-no-files-found: error
-
-  combine-videos:
-    name: Combine ${{ matrix.stem }}
-    needs: [discover, render-chunks]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.discover.outputs.videos) }}
-    steps:
-      - name: Checkout renderer
-        uses: actions/checkout@v4
-
-      - name: Download rendered chunks
-        uses: actions/download-artifact@v4
-        with:
-          pattern: chunk-${{ matrix.stem }}-*
-          merge-multiple: true
-          path: chunks
-
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
-      - name: Download archive package for audio
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-          ZIP_NAME: ${{ matrix.zip_name }}
-        run: |
-          rm -rf incoming public out audio-mix-assets
-          mkdir -p incoming public out
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ZIP_NAME" --dir incoming
-          unzip -o "incoming/$ZIP_NAME" -d public
-          test -f public/archive.json
-          node .github/scripts/sanitize-package.mjs public
-
-      - name: Stitch chunks and add audio
-        run: |
-          rm -f chunk-list.txt
-          for file in $(find chunks -name "${{ matrix.stem }}_chunk_*.mp4" | sort); do
-            echo "file '$(realpath "$file")'" >> chunk-list.txt
-          done
-          test -s chunk-list.txt
-
-          ffmpeg -y -f concat -safe 0 -i chunk-list.txt -c copy "out/${{ matrix.stem }}_silent.mp4"
-
-          node .github/scripts/mix-audio.mjs "out/${{ matrix.stem }}_audio.m4a"
-
-          if [ -f "out/${{ matrix.stem }}_audio.m4a" ]; then
-            ffmpeg -y \
-              -i "out/${{ matrix.stem }}_silent.mp4" \
-              -i "out/${{ matrix.stem }}_audio.m4a" \
-              -map 0:v:0 \
-              -map 1:a:0 \
-              -c:v copy \
-              -c:a copy \
-              -shortest \
-              "out/${{ matrix.stem }}.mp4"
-          else
-            cp "out/${{ matrix.stem }}_silent.mp4" "out/${{ matrix.stem }}.mp4"
+            gh release download --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" --dir _release_assets --clobber
           fi
 
-      - name: Upload rendered video
+          ZIP_PATH="$(find _release_assets -maxdepth 1 -type f -name '*.zip' | head -n 1)"
+          if [ -z "$ZIP_PATH" ]; then
+            echo "Could not find a ZIP release asset named $ASSET_NAME"
+            exit 1
+          fi
+
+          rm -rf public
+          mkdir -p public
+          unzip -q "$ZIP_PATH" -d _unzipped
+
+          if [ -d _unzipped/public ]; then
+            cp -R _unzipped/public/. public/
+          else
+            cp -R _unzipped/. public/
+          fi
+
+          test -f public/scenes.json
+          test -d public/images
+          test -d public/audio
+
+      - name: Check project
+        run: npm run lint
+
+      - name: Render video
+        run: npm run render
+
+      - name: Upload video artifact
         uses: actions/upload-artifact@v4
         with:
-          name: video-${{ matrix.stem }}
-          path: out/${{ matrix.stem }}.mp4
-          if-no-files-found: error
-
-  collect:
-    name: Collect videos
-    needs: combine-videos
-    runs-on: ubuntu-latest
-    if: ${{ success() }}
-    steps:
-      - name: Download rendered videos
-        uses: actions/download-artifact@v4
-        with:
-          pattern: video-*
-          merge-multiple: true
-          path: rendered
-
-      - name: Create final zip
-        run: |
-          cd rendered
-          zip -9 ../rendered-archive-videos.zip ./*.mp4
-
-      - name: Upload final zip
-        uses: actions/upload-artifact@v4
-        with:
-          name: rendered-archive-videos
-          path: rendered-archive-videos.zip
+          name: cartoon-explainer-video
+          path: renders/cartoon-explainer.mp4
           if-no-files-found: error
