@@ -4,5 +4,6 @@ dist/
 out/
 renders/
 public/
+public.zip
 *.log
 preview-*.png

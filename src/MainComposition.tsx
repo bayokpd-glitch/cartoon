@@ -106,6 +106,13 @@ const Caption: React.FC<{scene: Scene}> = ({scene}) => {
   const words = activeChunk?.words?.length
     ? activeChunk.words
     : text.split(/\s+/).filter(Boolean).map((word) => ({text: word, start: 0, end: Number.POSITIVE_INFINITY}));
+  const captionLength = text.replace(/\s+/g, " ").trim().length;
+  const captionFontSize =
+    captionLength > 40 ? 38 :
+    captionLength > 34 ? 42 :
+    captionLength > 28 ? 46 :
+    captionLength > 22 ? 50 :
+    58;
 
   return (
     <div
@@ -114,14 +121,15 @@ const Caption: React.FC<{scene: Scene}> = ({scene}) => {
         left: "50%",
         bottom: 42,
         width: "fit-content",
-        maxWidth: 1040,
+        maxWidth: "calc(100% - 92px)",
         padding: "14px 28px 16px",
         color: ink,
         fontFamily: "Arial, sans-serif",
-        fontSize: 58,
-        lineHeight: 1.02,
+        fontSize: captionFontSize,
+        lineHeight: 1,
         fontWeight: 900,
         textAlign: "center",
+        whiteSpace: "nowrap",
         background: "rgba(255,253,247,0.94)",
         border: `6px solid ${ink}`,
         borderRadius: 4,
