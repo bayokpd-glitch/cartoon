@@ -1,0 +1,10 @@
+node_modules/
+.remotion/
+dist/
+out/
+renders/
+*.log
+preview-*.png
+public/audio/*.transcribe.mp3
+public/audio/*.words.json
+public/audio/*.response.json
