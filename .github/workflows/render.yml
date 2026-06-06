@@ -145,7 +145,8 @@ jobs:
                       sys.exit(f"❌ {asset_name} -> scenes.json has no duration field and no usable end times")
                   duration = max(possible_ends)
 
-              total_frames = math.ceil(float(duration) * 25)
+              fps = int(float(scenes.get('fps') or 30))
+              total_frames = math.ceil(float(duration) * fps)
               frames_per_worker = max(1, (total_frames + num_workers - 1) // num_workers)
 
               videos.append({
@@ -153,6 +154,7 @@ jobs:
                   'zip_name': asset_name,
                   'zip_url': zip_url,
                   'total_frames': total_frames,
+                  'fps': fps,
               })
 
               for idx in range(num_workers):
