@@ -8,6 +8,7 @@
     "lint": "eslint src && tsc"
   },
   "dependencies": {
+    "@fontsource/arimo": "^5.2.8",
     "@remotion/cli": "4.0.463",
     "react": "19.2.3",
     "react-dom": "19.2.3",

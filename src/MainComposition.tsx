@@ -22,6 +22,7 @@ const blue = "#5ab4e8";
 const green = "#58a85e";
 const red = "#e3362d";
 const muted = "#6a665f";
+const uiFont = "Arimo, Arial, sans-serif";
 
 function useSceneTime(scene: Scene) {
   const {fps} = useVideoConfig();
@@ -83,7 +84,7 @@ const FrameChrome: React.FC<{data: ScenesData}> = ({data}) => (
         alignItems: "center",
         gap: 12,
         color: "rgba(16,16,16,0.62)",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: uiFont,
         fontSize: 22,
         fontWeight: 800,
       }}
@@ -124,7 +125,7 @@ const Caption: React.FC<{scene: Scene}> = ({scene}) => {
         maxWidth: "calc(100% - 92px)",
         padding: "14px 28px 16px",
         color: ink,
-        fontFamily: "Arial, sans-serif",
+        fontFamily: uiFont,
         fontSize: captionFontSize,
         lineHeight: 1,
         fontWeight: 900,
@@ -198,7 +199,7 @@ const HeadlineScene: React.FC<{scene: Scene}> = ({scene}) => {
         color: ink,
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: uiFont,
         padding: "0 150px",
       }}
     >
@@ -223,7 +224,7 @@ const QuestionScene: React.FC<{scene: Scene}> = ({scene}) => {
         color: ink,
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: uiFont,
         padding: 120,
       }}
     >
@@ -254,7 +255,7 @@ const QuoteScene: React.FC<{scene: Scene}> = ({scene}) => (
       color: ink,
       alignItems: "center",
       justifyContent: "center",
-      fontFamily: "Arial, sans-serif",
+      fontFamily: uiFont,
       padding: "0 190px",
     }}
   >
@@ -285,7 +286,7 @@ const ListScene: React.FC<{scene: Scene}> = ({scene}) => {
   const items = scene.timeline_items?.length ? scene.timeline_items : [scene.text];
   const frame = useCurrentFrame();
   return (
-    <AbsoluteFill style={{background: paper, color: ink, fontFamily: "Arial, sans-serif", padding: "120px 170px"}}>
+    <AbsoluteFill style={{background: paper, color: ink, fontFamily: uiFont, padding: "120px 170px"}}>
       <DoodleOverlay />
       <div style={{fontSize: 84, lineHeight: 1, fontWeight: 900, marginBottom: 58}}>{scene.headline}</div>
       <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34}}>
@@ -324,7 +325,7 @@ const FallbackCard: React.FC<{scene: Scene}> = ({scene}) => (
       color: ink,
       alignItems: "center",
       justifyContent: "center",
-      fontFamily: "Arial, sans-serif",
+      fontFamily: uiFont,
       padding: "0 160px",
     }}
   >
@@ -366,7 +367,7 @@ const EndingCard: React.FC<{data: ScenesData}> = ({data}) => (
       color: ink,
       alignItems: "center",
       justifyContent: "center",
-      fontFamily: "Arial, sans-serif",
+      fontFamily: uiFont,
       padding: "0 170px",
     }}
   >

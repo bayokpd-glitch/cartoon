@@ -1,5 +1,6 @@
 import React from "react";
 import {Composition} from "remotion";
+import "@fontsource/arimo/700.css";
 import {MainComposition} from "./MainComposition";
 import data from "../public/scenes.json";
 import type {ScenesData} from "./types";
