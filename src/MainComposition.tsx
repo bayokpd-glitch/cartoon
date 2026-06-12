@@ -360,30 +360,7 @@ const SceneSequence: React.FC<{scene: Scene; index: number}> = ({scene, index}) 
   );
 };
 
-const EndingCard: React.FC<{data: ScenesData}> = ({data}) => (
-  <AbsoluteFill
-    style={{
-      background: green,
-      color: ink,
-      alignItems: "center",
-      justifyContent: "center",
-      fontFamily: uiFont,
-      padding: "0 170px",
-    }}
-  >
-    <DoodleOverlay />
-    <div style={{fontSize: 46, fontWeight: 900, marginBottom: 28}}>{data.ending?.headline || "Thanks for watching"}</div>
-    <div style={{fontSize: 98, lineHeight: 1, fontWeight: 900, textAlign: "center", maxWidth: 1250}}>
-      {data.ending?.text || data.title}
-    </div>
-  </AbsoluteFill>
-);
-
 export const MainComposition: React.FC<Props> = ({data}) => {
-  const {durationInFrames} = useVideoConfig();
-  const endingFrames = Math.min(120, Math.max(72, Math.floor(durationInFrames * 0.07)));
-  const endingStart = Math.max(0, durationInFrames - endingFrames);
-
   return (
     <AbsoluteFill style={{backgroundColor: paper}}>
       {data.audio && <Audio src={staticFile(data.audio)} />}
@@ -391,12 +368,6 @@ export const MainComposition: React.FC<Props> = ({data}) => {
       {data.scenes.map((scene, i) => (
         <SceneSequence key={`${scene.start}-${i}`} scene={scene} index={i} />
       ))}
-
-      <Sequence from={endingStart} durationInFrames={durationInFrames - endingStart}>
-        <SceneTransition durationInFrames={durationInFrames - endingStart}>
-          <EndingCard data={data} />
-        </SceneTransition>
-      </Sequence>
 
       <FrameChrome data={data} />
     </AbsoluteFill>
